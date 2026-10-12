@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% from "_macros.html" import ring, chips, money %}{% block title %}{{ j.title }} · HireLens{% endblock %}
+{% block content %}
+<div class="page-head row between"><div><h1 style="font-size:2rem">{{ j.title }}</h1>
+  <p>{{ j.company }}{% if j.location %} · {{ j.location }}{% endif %} · {{ j.job_type }}{% if j.level %} · {{ j.level }}{% endif %} {{ money(j.salary_min, j.salary_max) }}</p></div>
+  <span class="status {{ j.status }}">{{ j.status }}</span></div>
+<div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(280px,1fr);margin-top:14px">
+  <div class="card stack"><h3>About the role</h3><div class="pre">{{ j.description }}</div>
+    <h3>Skills</h3><div>{{ chips(j.skills, 'teal') }}</div></div>
+  <aside class="stack">
+    {% if user and user.role=='candidate' %}
+      {% if match %}
+      <div class="card stack"><div class="row">{{ ring(match.score, 84) }}<div><h3>Your match</h3><div class="muted small">Based on your saved resume</div></div></div>
+        <div><span class="small muted">Skills you have</span><div>{% for s in match.matched %}<span class="chip ok">{{ s }}</span>{% else %}<span class="muted small">None found</span>{% endfor %}</div></div>
+        {% if match.missing %}<div><span class="small muted">Worth adding</span><div>{% for s in match.missing %}<span class="chip miss">{{ s }}</span>{% endfor %}</div></div>{% endif %}
+        <p class="small muted">{{ match.reason }}</p></div>
+      {% else %}<div class="card stack"><h3>See how you match</h3><p class="muted small">Build or upload a resume to get a match score for this job.</p><a class="btn" href="{{ url_for('resume_builder') }}">Build resume</a></div>{% endif %}
+      {% if applied %}<div class="card"><span class="status {{ applied.status }}">{{ applied.status }}</span> <span class="muted small">You applied with a {{ applied.score }}% match.</span></div>
+      {% elif j.status=='open' %}
+      <form class="card stack" method="post" action="{{ url_for('apply', job_id=j.id) }}"><input type="hidden" name="_csrf" value="{{ csrf_token }}">
+        <h3>Apply</h3><div><label for="cover">Note to recruiter (optional)</label><textarea id="cover" name="cover" style="min-height:90px"></textarea></div>
+        <button class="btn primary">Apply with my resume</button></form>{% endif %}
+    {% elif not user %}<div class="card stack"><h3>Apply in minutes</h3><p class="muted small">Sign in to see your match score and apply.</p><a class="btn primary" href="{{ url_for('login', next=request.path) }}">Sign in</a></div>{% endif %}
+  </aside>
+</div>
+{% endblock %}

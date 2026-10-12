@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% from "_macros.html" import ring %}{% block title %}ATS score · HireLens{% endblock %}
+{% block content %}
+<div class="page-head"><h1 style="font-size:2rem">ATS score checker</h1><p>See how an applicant tracking system reads your resume. Paste a job description to score keyword fit too.</p></div>
+{% if not has_resume %}
+<div class="card stack" style="margin-top:16px"><p class="muted">No resume on file yet.</p><div class="row"><a class="btn primary" href="{{ url_for('resume_builder') }}">Build resume</a>
+<form method="post" action="{{ url_for('resume_upload') }}" enctype="multipart/form-data" class="row"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><input type="file" name="resume" accept=".pdf,.docx,.txt" style="width:auto" aria-label="Upload resume"><button class="btn">Upload</button></form></div></div>
+{% else %}
+<div class="grid" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);margin-top:16px">
+  <form method="post" class="card stack"><input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <h3>Target job description <span class="muted small">(optional)</span></h3>
+    <textarea name="jd" style="min-height:240px" placeholder="Paste the job description here…">{{ jd }}</textarea>
+    <button class="btn primary">Score my resume</button>
+    <hr style="border:0;border-top:1px solid var(--line)">
+    <div class="small muted">Using your saved resume ({{ words }} words). Replace it:</div>
+    <div class="row"><input form="up" type="file" name="resume" accept=".pdf,.docx,.txt" style="width:auto" aria-label="Upload resume"><button class="btn sm" form="up">Upload</button></div>
+  </form>
+  <form id="up" method="post" action="{{ url_for('resume_upload') }}" enctype="multipart/form-data"><input type="hidden" name="_csrf" value="{{ csrf_token }}"></form>
+  <div class="card stack">
+    <div class="row">{{ ring(res.score, 110) }}<div><h2>{{ res.grade }}</h2><div class="muted small">{{ 'Includes job description match' if res.jd else 'General ATS readiness — add a JD for keyword fit' }}</div></div></div>
+    {% for b in res.breakdown %}<div><div class="row between small"><span>{{ b.label }}</span><span class="muted">{{ b.got }}/{{ b.max }}</span></div><div class="bar"><i style="width:{{ (100*b.got/b.max)|round|int }}%"></i></div></div>{% endfor %}
+    {% if res.jd %}<div><h3>Keyword match ({{ res.jd.similarity }}% text similarity)</h3>
+      <div style="margin-top:6px">{% for s in res.jd.matched %}<span class="chip ok">{{ s }}</span>{% endfor %}{% for s in res.jd.missing %}<span class="chip miss">{{ s }}</span>{% endfor %}</div></div>{% endif %}
+    {% if res.tips %}<div><h3>How to improve</h3><ul style="margin:8px 0 0 18px" class="muted">{% for t in res.tips %}<li>{{ t }}</li>{% endfor %}</ul></div>{% endif %}
+  </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% from "_macros.html" import ring, jobcard, chips %}{% block title %}Dashboard · HireLens{% endblock %}
+{% block content %}
+<div class="page-head"><h1 style="font-size:2rem">Hi {{ user.name.split()[0] }}</h1><p>Your resume, scored and matched.</p></div>
+{% if not has_resume %}
+<div class="card stack" style="margin-top:16px"><h2>Start with a resume</h2><p class="muted">Everything here — ATS score, job matches, one-click applications — runs off your resume.</p>
+  <div class="row"><a class="btn primary" href="{{ url_for('resume_builder') }}">Build one</a>
+  <form method="post" action="{{ url_for('resume_upload') }}" enctype="multipart/form-data" class="row"><input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <input type="file" name="resume" accept=".pdf,.docx,.txt" style="width:auto" aria-label="Upload resume"><button class="btn">Upload instead</button></form></div></div>
+{% else %}
+<div class="grid g3" style="margin-top:16px">
+  <div class="card row">{{ ring(ats.score, 88) }}<div><h3>ATS score</h3><div class="muted small">{{ ats.grade }}</div><a class="small" style="color:var(--teal)" href="{{ url_for('candidate_ats') }}">See breakdown</a></div></div>
+  <div class="card"><h3>Applications</h3><div class="row" style="margin-top:8px">{% for s in STATUSES %}{% if counts.get(s) %}<span class="status {{ s }}">{{ s }} {{ counts[s] }}</span>{% endif %}{% else %}{% endfor %}{% if not counts %}<span class="muted small">None yet</span>{% endif %}</div></div>
+  <div class="card"><h3>Detected skills</h3><div style="margin-top:8px">{% for s in ats.skills[:10] %}<span class="chip teal">{{ s }}</span>{% endfor %}</div></div>
+</div>
+<section><div class="row between"><h2>Best matches for your resume</h2><a class="muted" href="{{ url_for('recommendations') }}">See all</a></div>
+  <div class="grid g3" style="margin-top:14px">{% for r in recs %}{{ jobcard(r, r.match) }}{% endfor %}</div></section>
+{% if apps %}<section><h2>Recent applications</h2><div class="card tbl-wrap" style="margin-top:14px"><table class="table">
+{% for a in apps %}<tr><td><b>{{ a.title }}</b> <span class="muted small">· {{ a.company }}</span></td><td>{{ a.score }}% match</td><td><span class="status {{ a.status }}">{{ a.status }}</span></td></tr>{% endfor %}</table></div></section>{% endif %}
+{% endif %}
+{% endblock %}

@@ -1,0 +1,15 @@
+{% macro ring(v, size=96) %}
+<div class="ring {{ 'hi' if v>=75 else 'mid' if v>=50 else 'lo' }}" style="--v:{{ v }};--s:{{ size }}px" role="img" aria-label="Score {{ v }} out of 100"><span>{{ v }}</span></div>
+{% endmacro %}
+{% macro chips(csv, cls='') %}{% for s in (csv or '').split(',') if s.strip() %}<span class="chip {{ cls }}">{{ s.strip() }}</span>{% endfor %}{% endmacro %}
+{% macro money(a,b) %}{% if a or b %}₹{{ '{:,}'.format(a) }}{% if b %} – ₹{{ '{:,}'.format(b) }}{% endif %} / yr{% endif %}{% endmacro %}
+{% macro jobcard(j, match=None) %}
+<a class="card job" href="{{ url_for('job_detail', job_id=j.id) }}">
+  <div class="row between" style="align-items:flex-start">
+    <div><h3>{{ j.title }}</h3><div class="muted small">{{ j.company }}{% if j.location %} · {{ j.location }}{% endif %}</div></div>
+    {% if match %}{{ ring(match.score, 58) }}{% endif %}
+  </div>
+  <div>{{ chips(j.skills, 'teal') }}</div>
+  <div class="row between small muted"><span>{{ j.job_type }}{% if j.level %} · {{ j.level }}{% endif %}</span><span>{{ money(j.salary_min, j.salary_max) }}</span></div>
+</a>
+{% endmacro %}

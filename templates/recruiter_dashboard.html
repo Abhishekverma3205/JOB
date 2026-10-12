@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% from "_macros.html" import ring %}{% block title %}Recruiter dashboard · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<div class="page-head row between"><div><h1 style="font-size:2rem">Recruiter dashboard</h1><p>Your jobs and who is rising to the top.</p></div><a class="btn primary" href="{{ url_for('job_create') }}">Post a job</a></div>
+<div class="grid g3" style="margin-top:16px">
+  <div class="card stat"><b>{{ tot.jobs }}</b><span class="muted small">jobs posted</span></div>
+  <div class="card stat"><b>{{ tot.apps }}</b><span class="muted small">applications</span></div>
+  <div class="card stat"><b>{{ tot.short }}</b><span class="muted small">shortlisted</span></div></div>
+<div class="card tbl-wrap" style="margin-top:18px"><table class="table"><tr><th>Job</th><th>Applicants</th><th>Shortlisted</th><th>Top match</th><th>Status</th><th></th></tr>
+{% for j in jobs %}<tr><td><a href="{{ url_for('job_applicants', job_id=j.id) }}"><b>{{ j.title }}</b></a><div class="muted small">{{ j.location }} · {{ j.job_type }}</div></td>
+<td>{{ j.apps }}</td><td>{{ j.short or 0 }}</td><td>{% if j.apps %}{{ j.best }}%{% else %}<span class="muted">–</span>{% endif %}</td>
+<td><span class="status {{ j.status }}">{{ j.status }}</span></td>
+<td><div class="row" style="gap:6px"><a class="btn sm" href="{{ url_for('job_applicants', job_id=j.id) }}">Applicants</a><a class="btn sm" href="{{ url_for('job_edit', job_id=j.id) }}">Edit</a>
+<form method="post" action="{{ url_for('job_toggle', job_id=j.id) }}"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="btn sm">{{ 'Close' if j.status=='open' else 'Reopen' }}</button></form>
+<form method="post" action="{{ url_for('job_delete', job_id=j.id) }}" onsubmit="return confirm('Delete this job and all its applications?')"><input type="hidden" name="_csrf" value="{{ csrf_token }}"><button class="btn sm danger">Delete</button></form></div></td></tr>
+{% else %}<tr><td colspan="6" class="muted">No jobs yet. Post your first one — AI can draft the description.</td></tr>{% endfor %}</table></div>
+{% endblock %}

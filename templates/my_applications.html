@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% from "_macros.html" import ring %}{% block title %}My applications · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<div class="page-head"><h1 style="font-size:2rem">My applications</h1></div>
+{% if apps %}<div class="card tbl-wrap" style="margin-top:16px"><table class="table"><tr><th>Role</th><th>Match</th><th>Status</th><th>Applied</th></tr>
+{% for a in apps %}<tr><td><a href="{{ url_for('job_detail', job_id=a.job_id) }}"><b>{{ a.title }}</b></a><div class="muted small">{{ a.company }}</div></td>
+<td>{{ ring(a.score, 44) }}</td><td><span class="status {{ a.status }}">{{ a.status }}</span></td><td class="muted small">{{ a.created[:10] }}</td></tr>{% endfor %}</table></div>
+{% else %}<div class="card" style="margin-top:16px"><p class="muted">You haven't applied anywhere yet.</p><a class="btn primary" style="margin-top:12px" href="{{ url_for('recommendations') }}">See jobs that fit you</a></div>{% endif %}
+{% endblock %}

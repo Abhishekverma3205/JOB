@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% block title %}Create account · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<section style="max-width:470px;margin:0 auto"><div class="card stack">
+  <h2>Create your account</h2>
+  <form method="post" class="stack"><input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <div><label>I am a</label><select name="role" id="role" onchange="document.getElementById('co').style.display=this.value==='recruiter'?'block':'none'">
+      <option value="candidate" {{ 'selected' if role=='candidate' }}>Candidate looking for a job</option>
+      <option value="recruiter" {{ 'selected' if role=='recruiter' }}>Recruiter hiring talent</option></select></div>
+    <div><label for="name">Full name</label><input id="name" name="name" required></div>
+    <div><label for="email">Email</label><input id="email" type="email" name="email" required></div>
+    <div id="co" style="display:{{ 'block' if role=='recruiter' else 'none' }}"><label for="company">Company</label><input id="company" name="company"></div>
+    <div><label for="pw">Password</label><input id="pw" type="password" name="password" minlength="6" required><div class="hint">At least 6 characters.</div></div>
+    <button class="btn primary" style="width:100%">Create account</button></form>
+  <p class="muted small">Already registered? <a href="{{ url_for('login') }}" style="color:var(--teal)">Sign in</a></p>
+</div></section>
+{% endblock %}

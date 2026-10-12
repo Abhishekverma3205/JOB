@@ -1,0 +1,65 @@
+{% extends "base.html" %}{% block title %}{{ 'Edit job' if edit else 'Post a job' }} · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<div class="page-head"><h1 style="font-size:2rem">{{ 'Edit job' if edit else 'Post a job' }}</h1><p>The job description and skills you set here are what every resume gets scored against.</p></div>
+<form method="post" class="grid" style="grid-template-columns:minmax(0,2fr) minmax(280px,1fr);margin-top:16px;align-items:start"><input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <div class="stack">
+    <div class="card"><div class="form-grid">
+      <div class="full"><label for="title">Job title *</label><input id="title" name="title" required value="{{ j.title or '' }}" placeholder="e.g. Full Stack Developer"></div>
+      <div><label for="company">Company *</label><input id="company" name="company" required value="{{ j.company or '' }}"></div>
+      <div><label for="location">Location</label><input id="location" name="location" value="{{ j.location or '' }}" placeholder="City or Remote"></div>
+      <div><label for="job_type">Type</label><select id="job_type" name="job_type">{% for t in ['Full-time','Part-time','Internship','Contract'] %}<option {{ 'selected' if j.job_type==t }}>{{ t }}</option>{% endfor %}</select></div>
+      <div><label for="level">Level</label><select id="level" name="level"><option value="">Any</option>{% for t in ['Fresher','Junior','Mid','Senior','Lead'] %}<option {{ 'selected' if j.level==t }}>{{ t }}</option>{% endfor %}</select></div>
+      <div><label for="smin">Salary min (₹/yr)</label><input id="smin" type="number" min="0" step="10000" name="salary_min" value="{{ j.salary_min or '' }}"></div>
+      <div><label for="smax">Salary max (₹/yr)</label><input id="smax" type="number" min="0" step="10000" name="salary_max" value="{{ j.salary_max or '' }}"></div></div></div>
+    <div class="card stack">
+      <div class="row between"><h3>Description *</h3><button type="button" class="btn sm violet" id="gen">Generate with AI<span class="ai-tag" style="background:#fff;color:#4b3fd0">AI</span></button></div>
+      <textarea id="description" name="description" style="min-height:300px" required placeholder="Describe the role, responsibilities and requirements. Mention years of experience if it matters — it is used when scoring.">{{ j.description or '' }}</textarea>
+      <div id="genNote" class="hint"></div></div>
+    <div class="card stack">
+      <div class="row between"><h3>Required skills</h3><button type="button" class="btn sm" id="extract">Detect from description</button></div>
+      <input id="skills" name="skills" value="{{ j.skills or '' }}" placeholder="python, flask, sql, react">
+      <div class="hint">Comma separated. Candidates are shortlisted mainly on how many of these appear in their resume.</div><div id="skillChips"></div></div>
+  </div>
+  <aside class="stack" style="position:sticky;top:78px">
+    <div class="card stack"><h3>AI shortlisting</h3>
+      <label class="row" style="margin:0;color:var(--text)"><input type="checkbox" name="auto_shortlist" id="auto" {{ 'checked' if j.auto_shortlist }}> Auto-shortlist new applicants</label>
+      <div><label for="thr">Minimum match score: <b id="thrv">{{ j.threshold or 70 }}</b>%</label><input type="range" id="thr" name="threshold" min="30" max="95" step="5" value="{{ j.threshold or 70 }}"></div>
+      <p class="hint">When someone applies, their resume is compared to this job. Scores at or above the threshold are shortlisted instantly; the rest stay in Applied for you to review. You can also shortlist in bulk later.</p></div>
+    <div class="card stack"><h3>Test the match</h3><p class="hint">Paste a sample resume to see how this job description would score it.</p>
+      <textarea id="sample" style="min-height:110px" placeholder="Paste resume text…"></textarea>
+      <button type="button" class="btn" id="test">Score sample</button><div id="testOut"></div></div>
+    <button class="btn primary" style="width:100%">{{ 'Save changes' if edit else 'Publish job' }}</button>
+  </aside>
+</form>
+{% endblock %}
+{% block scripts %}
+<script>
+const $ = id => document.getElementById(id);
+function drawChips() { $('skillChips').innerHTML = $('skills').value.split(',').map(s => s.trim()).filter(Boolean).map(s => `<span class="chip teal">${esc(s)}</span>`).join(''); }
+$('skills').addEventListener('input', drawChips); drawChips();
+$('thr').oninput = () => $('thrv').textContent = $('thr').value;
+$('gen').onclick = async function () {
+  if (!$('title').value.trim()) { alert('Enter a job title first.'); $('title').focus(); return; }
+  busy(this, true, 'Writing');
+  try {
+    const r = await api('/api/generate-jd', {title: $('title').value, company: $('company').value, level: $('level').value, skills: $('skills').value, location: $('location').value});
+    $('description').value = r.description; if (!$('skills').value.trim()) { $('skills').value = r.skills; drawChips(); }
+    $('genNote').textContent = r.source === 'claude' ? 'Drafted by Claude — review and edit before publishing.' : 'Drafted from a template. Set ANTHROPIC_API_KEY for richer AI-written descriptions.';
+  } catch (e) { alert(e.message); }
+  busy(this, false);
+};
+$('extract').onclick = async function () {
+  busy(this, true, 'Reading');
+  try { const r = await api('/api/analyze-jd', {description: $('description').value}); if (r.skills.length) { $('skills').value = r.skills.join(', '); drawChips(); } else alert('No known skills found in the description.'); } catch (e) { alert(e.message); }
+  busy(this, false);
+};
+$('test').onclick = async function () {
+  busy(this, true, 'Scoring');
+  try {
+    const m = await api('/api/preview-match', {resume: $('sample').value, title: $('title').value, description: $('description').value, skills: $('skills').value});
+    $('testOut').innerHTML = `<div class="row" style="margin-top:10px">${ringHTML(m.score, 64)}<div class="small"><b>${m.skill_score}%</b> skills · <b>${m.sim_score}%</b> text fit</div></div><p class="small muted" style="margin-top:8px">${esc(m.reason)}</p>`;
+  } catch (e) { $('testOut').innerHTML = `<p class="small" style="color:var(--rose)">${esc(e.message)}</p>`; }
+  busy(this, false);
+};
+</script>
+{% endblock %}

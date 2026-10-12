@@ -1,0 +1,105 @@
+{% extends "base.html" %}{% from "_macros.html" import ring %}{% block title %}Resume builder · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<div class="page-head row between"><div><h1 style="font-size:2rem">Resume builder</h1><p>Edit on the left, see the ATS-friendly result on the right.</p></div>
+  <div class="row no-print"><span id="saved" class="muted small"></span><button class="btn primary" id="saveBtn">Save resume</button>
+  <a class="btn" href="{{ url_for('resume_print') }}" target="_blank" rel="noopener">Download PDF</a></div></div>
+<div class="builder" style="margin-top:16px">
+  <div class="stack">
+    <div class="card"><h3 style="margin-bottom:12px">Basics</h3><div class="form-grid">
+      <div><label>Full name</label><input data-k="name"></div><div><label>Headline</label><input data-k="headline" placeholder="Full Stack Developer"></div>
+      <div><label>Email</label><input data-k="email" type="email"></div><div><label>Phone</label><input data-k="phone"></div>
+      <div><label>Location</label><input data-k="location"></div><div><label>Links</label><input data-k="links" placeholder="github.com/you · linkedin.com/in/you"></div></div></div>
+    <div class="card"><div class="row between"><h3>Summary</h3><button class="btn sm" id="aiSum" type="button">Write with AI<span class="ai-tag">AI</span></button></div>
+      <textarea data-k="summary" style="margin-top:10px;min-height:90px"></textarea></div>
+    <div class="card"><h3>Skills</h3><textarea data-k="skills" style="margin-top:10px;min-height:70px" placeholder="Python, Flask, SQL, React, Git, REST API…"></textarea><div class="hint">Comma separated. Use the exact names job descriptions use.</div></div>
+    <div class="card"><div class="row between"><h3>Experience</h3><button class="btn sm" data-add="experience" type="button">+ Add</button></div><div id="experience" style="margin-top:10px"></div></div>
+    <div class="card"><div class="row between"><h3>Projects</h3><button class="btn sm" data-add="projects" type="button">+ Add</button></div><div id="projects" style="margin-top:10px"></div></div>
+    <div class="card"><div class="row between"><h3>Education</h3><button class="btn sm" data-add="education" type="button">+ Add</button></div><div id="education" style="margin-top:10px"></div></div>
+    <div class="card"><h3>Certifications</h3><textarea data-k="certifications" style="margin-top:10px;min-height:70px" placeholder="One per line"></textarea></div>
+  </div>
+  <div class="preview-col stack">
+    <div class="card row" id="atsBox"><div id="atsRing"></div><div style="flex:1"><h3>Live ATS score</h3><div class="muted small" id="atsGrade">Calculating…</div><ul id="atsTips" class="small muted" style="margin:6px 0 0 16px"></ul></div></div>
+    <div class="row no-print"><label style="margin:0">Template</label><select id="tpl" style="width:auto"><option value="classic">Classic</option><option value="modern" selected>Modern</option><option value="compact">Compact</option></select></div>
+    <div class="paper modern" id="paper"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const R = {{ resume|tojson }};
+['experience','projects','education'].forEach(k => { if (!R[k] || !R[k].length) R[k] = [{}]; });
+const SCHEMA = {
+  experience: [['role','Role'],['company','Company'],['period','Period (e.g. Jun 2024 – Present)'],['bullets','Achievements — one per line','ta']],
+  projects:   [['name','Project name'],['tech','Tech used'],['bullets','What you built & the result — one per line','ta']],
+  education:  [['degree','Degree'],['school','College / school'],['period','Years'],['score','CGPA / percentage']]
+};
+document.querySelectorAll('[data-k]').forEach(el => { el.value = R[el.dataset.k] || ''; el.addEventListener('input', () => { R[el.dataset.k] = el.value; changed(); }); });
+
+function renderList(k) {
+  const box = document.getElementById(k); box.innerHTML = '';
+  R[k].forEach((item, i) => {
+    const d = document.createElement('div'); d.className = 'entry';
+    let h = '<div class="form-grid">';
+    SCHEMA[k].forEach(([f, label, t]) => {
+      h += t ? `<div class="full"><div class="row between"><label>${label}</label><button type="button" class="btn sm" data-imp="${i}" data-f="${f}">Improve<span class="ai-tag">AI</span></button></div><textarea data-i="${i}" data-f="${f}" style="min-height:80px">${esc(item[f])}</textarea></div>`
+               : `<div><label>${label}</label><input data-i="${i}" data-f="${f}" value="${esc(item[f])}"></div>`;
+    });
+    h += `</div><div style="margin-top:10px"><button type="button" class="btn sm danger" data-del="${i}">Remove</button></div>`;
+    d.innerHTML = h; box.appendChild(d);
+    d.querySelectorAll('[data-f]').forEach(el => { if (el.dataset.imp !== undefined) return; el.addEventListener('input', () => { R[k][+el.dataset.i][el.dataset.f] = el.value; changed(); }); });
+    d.querySelectorAll('[data-imp]').forEach(b => b.onclick = async () => {
+      const ta = d.querySelector(`textarea[data-f="${b.dataset.f}"]`); if (!ta.value.trim()) return;
+      busy(b, true, '');
+      try { const r = await api('/api/resume/improve', {text: ta.value}); ta.value = r.text; R[k][i][b.dataset.f] = r.text; changed(); } catch (e) { alert(e.message); }
+      busy(b, false);
+    });
+    d.querySelector('[data-del]').onclick = () => { R[k].splice(i, 1); if (!R[k].length) R[k] = [{}]; renderList(k); changed(); };
+  });
+}
+document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { R[b.dataset.add].push({}); renderList(b.dataset.add); });
+Object.keys(SCHEMA).forEach(renderList);
+
+const bl = t => (t || '').split('\n').filter(x => x.trim()).map(x => `<li>${esc(x.trim().replace(/^[-•*]\s*/, ''))}</li>`).join('');
+function preview() {
+  const p = document.getElementById('paper'); p.className = 'paper ' + document.getElementById('tpl').value;
+  const contact = [R.email, R.phone, R.location, R.links].filter(Boolean).map(esc).join(' · ');
+  let h = `<h1>${esc(R.name)}</h1><div class="sub">${esc(R.headline)}</div><div class="sub">${contact}</div>`;
+  if (R.summary) h += `<h4>Summary</h4><div>${esc(R.summary)}</div>`;
+  if (R.skills) h += `<h4>Skills</h4><div>${esc(R.skills)}</div>`;
+  const ex = R.experience.filter(e => e.role || e.company);
+  if (ex.length) h += '<h4>Experience</h4>' + ex.map(e => `<div class="it"><span>${esc(e.role)}${e.company ? ', ' + esc(e.company) : ''}</span><span>${esc(e.period)}</span></div><ul>${bl(e.bullets)}</ul>`).join('');
+  const pr = R.projects.filter(e => e.name);
+  if (pr.length) h += '<h4>Projects</h4>' + pr.map(e => `<div class="it"><span>${esc(e.name)}</span><span>${esc(e.tech)}</span></div><ul>${bl(e.bullets)}</ul>`).join('');
+  const ed = R.education.filter(e => e.degree);
+  if (ed.length) h += '<h4>Education</h4>' + ed.map(e => `<div class="it"><span>${esc(e.degree)}${e.school ? ', ' + esc(e.school) : ''}</span><span>${esc(e.period)}</span></div>${e.score ? '<div>' + esc(e.score) + '</div>' : ''}`).join('');
+  if (R.certifications) h += `<h4>Certifications</h4><ul>${bl(R.certifications)}</ul>`;
+  p.innerHTML = h;
+}
+document.getElementById('tpl').onchange = preview;
+
+let t1, t2;
+function changed() { clearTimeout(t1); clearTimeout(t2); document.getElementById('saved').textContent = 'Unsaved changes'; t1 = setTimeout(preview, 120); t2 = setTimeout(liveAts, 700); }
+async function liveAts() {
+  try {
+    const a = await api('/api/ats', R);
+    document.getElementById('atsRing').innerHTML = ringHTML(a.score, 76);
+    document.getElementById('atsGrade').textContent = a.grade + ' · ' + a.words + ' words';
+    document.getElementById('atsTips').innerHTML = a.tips.slice(0, 3).map(x => `<li>${esc(x)}</li>`).join('');
+  } catch (e) {}
+}
+document.getElementById('saveBtn').onclick = async function () {
+  busy(this, true, 'Saving');
+  try { await api('/candidate/resume/save', R); document.getElementById('saved').textContent = 'Saved'; } catch (e) { alert(e.message); }
+  busy(this, false);
+};
+document.getElementById('aiSum').onclick = async function () {
+  busy(this, true, 'Writing');
+  try {
+    const r = await api('/api/resume/summary', {name: R.name, headline: R.headline, skills: R.skills, years: 0, projects: (R.projects || []).map(p => p.name).join(', ')});
+    R.summary = r.summary; document.querySelector('[data-k=summary]').value = r.summary; changed();
+  } catch (e) { alert(e.message); }
+  busy(this, false);
+};
+preview(); liveAts();
+</script>
+{% endblock %}

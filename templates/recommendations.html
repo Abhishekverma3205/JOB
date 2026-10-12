@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% from "_macros.html" import ring, chips, money %}{% block title %}Jobs for you · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<div class="page-head"><h1 style="font-size:2rem">Jobs that fit your resume</h1><p>Ranked by skill overlap, text similarity and experience.</p></div>
+{% if not has_resume %}<div class="card" style="margin-top:16px"><p class="muted">Add a resume to get matches.</p><a class="btn primary" style="margin-top:12px" href="{{ url_for('resume_builder') }}">Build resume</a></div>
+{% else %}
+<div class="card tight" style="margin:16px 0"><span class="small muted">Skills we found in your resume:</span> {% for s in skills %}<span class="chip teal">{{ s }}</span>{% else %}<span class="muted small">none detected — add a Skills section</span>{% endfor %}</div>
+<div class="stack">{% for r in recs %}<div class="card row between">
+  <div class="row" style="flex:1;min-width:260px">{{ ring(r.match.score, 70) }}<div><a href="{{ url_for('job_detail', job_id=r.id) }}"><h3>{{ r.title }}</h3></a>
+    <div class="muted small">{{ r.company }}{% if r.location %} · {{ r.location }}{% endif %} · {{ money(r.salary_min, r.salary_max) }}</div>
+    <div style="margin-top:6px">{% for s in r.match.matched[:5] %}<span class="chip ok">{{ s }}</span>{% endfor %}{% for s in r.match.missing[:3] %}<span class="chip miss">{{ s }}</span>{% endfor %}</div></div></div>
+  {% if r.id in applied %}<span class="status Shortlisted">Applied</span>{% else %}<a class="btn sm primary" href="{{ url_for('job_detail', job_id=r.id) }}">View &amp; apply</a>{% endif %}
+</div>{% else %}<div class="card muted">No open jobs yet.</div>{% endfor %}</div>
+{% endif %}
+{% endblock %}

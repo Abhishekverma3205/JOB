@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block title %}Sign in · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<section style="max-width:430px;margin:0 auto"><div class="card stack">
+  <h2>Sign in</h2>
+  <form method="post" class="stack"><input type="hidden" name="_csrf" value="{{ csrf_token }}">
+    <div><label for="email">Email</label><input id="email" type="email" name="email" required autofocus></div>
+    <div><label for="pw">Password</label><input id="pw" type="password" name="password" required></div>
+    <button class="btn primary" style="width:100%">Sign in</button></form>
+  <p class="muted small">New here? <a href="{{ url_for('register') }}" style="color:var(--teal)">Create an account</a></p>
+</div></section>
+{% endblock %}

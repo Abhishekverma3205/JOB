@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% from "_macros.html" import ring, chips %}{% block title %}{{ a.name }} · {{ a.title }}{% endblock %}
+{% block content %}
+<div class="page-head row between"><div><h1 style="font-size:2rem">{{ a.name }}</h1><p>{{ a.email }} · applied for {{ a.title }}</p></div><a class="btn" href="{{ url_for('job_applicants', job_id=a.job_id) }}">Back to applicants</a></div>
+<div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(260px,1fr);margin-top:16px">
+  <div class="card"><h3 style="margin-bottom:10px">Resume</h3><div class="pre small">{{ a.resume_text }}</div></div>
+  <aside class="stack"><div class="card stack"><div class="row">{{ ring(a.score, 84) }}<div><h3>Match score</h3><span class="status {{ a.status }}">{{ a.status }}</span></div></div>
+    <div>{{ chips(a.matched, 'ok') }}{{ chips(a.missing, 'miss') }}</div><p class="small muted">{{ a.reason }}</p></div>
+  {% if a.cover %}<div class="card"><h3>Note from candidate</h3><p class="muted small pre" style="margin-top:6px">{{ a.cover }}</p></div>{% endif %}</aside>
+</div>
+{% endblock %}

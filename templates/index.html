@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% from "_macros.html" import jobcard %}
+{% block content %}
+<section class="hero">
+  <h1>Hiring that reads the resume for you.</h1>
+  <p class="lead">Candidates build an ATS-ready resume and get matched to roles. Recruiters paste a job description and get applicants ranked and shortlisted, with the reasons shown.</p>
+  <form class="searchbar" action="{{ url_for('jobs') }}">
+    <input name="q" placeholder="Job title, skill or company" aria-label="Search jobs"><button class="btn primary">Search jobs</button>
+  </form>
+  <div class="row" style="gap:40px;margin-top:34px">
+    <div class="stat"><b>{{ stats.jobs }}</b><span class="muted small">open roles</span></div>
+    <div class="stat"><b>{{ stats.cands }}</b><span class="muted small">candidates</span></div>
+    <div class="stat"><b>{{ stats.apps }}</b><span class="muted small">applications scored</span></div>
+  </div>
+</section>
+<section>
+  <div class="grid g2">
+    <div class="card stack"><h2>For candidates</h2>
+      <p class="muted">Build a resume with live preview, check its ATS score against any job description, and see which open roles fit it best.</p>
+      <div class="row"><a class="btn primary" href="{{ url_for('register', role='candidate') }}">Build my resume</a></div></div>
+    <div class="card stack"><h2>For recruiters</h2>
+      <p class="muted">Draft a JD with AI, set an auto-shortlist threshold, and review applicants ranked by how well their resume matches the role.</p>
+      <div class="row"><a class="btn violet" href="{{ url_for('register', role='recruiter') }}">Post a job</a></div></div>
+  </div>
+</section>
+<section><div class="row between"><h2>Latest openings</h2><a class="muted" href="{{ url_for('jobs') }}">See all jobs</a></div>
+  <div class="grid g3" style="margin-top:16px">{% for j in jobs %}{{ jobcard(j) }}{% else %}<p class="muted">No open jobs yet.</p>{% endfor %}</div></section>
+<section><div class="card tight small muted">Demo accounts — candidate: candidate@demo.com · recruiter: recruiter@demo.com · password: demo1234</div></section>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% from "_macros.html" import jobcard %}{% block title %}Browse jobs · PLACEMENT WITH BBD{% endblock %}
+{% block content %}
+<div class="page-head"><h1 style="font-size:2rem">Browse jobs</h1></div>
+<form class="card tight row" style="margin:16px 0">
+  <input name="q" value="{{ q }}" placeholder="Title, skill, company" style="flex:2;min-width:180px" aria-label="Keyword">
+  <input name="loc" value="{{ loc }}" placeholder="Location" style="flex:1;min-width:130px" aria-label="Location">
+  <select name="type" style="flex:1;min-width:130px" aria-label="Job type"><option value="">Any type</option>
+    {% for t in ['Full-time','Part-time','Internship','Contract'] %}<option {{ 'selected' if jt==t }}>{{ t }}</option>{% endfor %}</select>
+  <button class="btn primary">Filter</button></form>
+<p class="muted small" style="margin-bottom:12px">{{ jobs|length }} job{{ '' if jobs|length==1 else 's' }} found</p>
+<div class="grid g3">{% for j in jobs %}{{ jobcard(j) }}{% else %}<div class="card muted">No jobs match those filters. Clear a filter or try another keyword.</div>{% endfor %}</div>
+{% endblock %}
